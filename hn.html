@@ -26,6 +26,25 @@
             text-decoration: none;
         }
 
+        /* Toggle controls styling */
+        .controls {
+            padding: 12px 15px 0 15px;
+            font-size: 10pt;
+            display: flex;
+            gap: 20px;
+        }
+
+        .controls label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .controls input[type="radio"] {
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
         .container {
             padding: 15px;
         }
@@ -110,12 +129,24 @@
         <a href="#">Hacker News Check</a>
     </div>
 
+    <div class="controls">
+        <label>
+            <input type="radio" name="feedToggle" value="topstories" checked> 
+            Top Stories
+        </label>
+        <label>
+            <input type="radio" name="feedToggle" value="beststories"> 
+            Most Active (Best)
+        </label>
+    </div>
+
     <div id="stories" class="container">
-        <div class="loading">Fetching front page stories...</div>
+        <div class="loading">Fetching stories...</div>
     </div>
 
     <script>
         const storiesContainer = document.getElementById('stories');
+        const feedToggles = document.querySelectorAll('input[name="feedToggle"]');
         const PROCESSED_KEY = 'hn_processed_items';
         const STORIES_TO_LOAD = 30; 
         
@@ -164,10 +195,13 @@
             localStorage.setItem(PROCESSED_KEY, JSON.stringify(processed));
         }
 
-        async function loadStories() {
+        async function loadStories(feedType = 'topstories') {
             try {
-                // Fetch the IDs of the current top stories
-                const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+                // Show loading text when switching feeds
+                storiesContainer.innerHTML = `<div class="loading">Fetching ${feedType === 'topstories' ? 'front page' : 'most active'} stories...</div>`;
+                
+                // Fetch the IDs of the requested feed type
+                const res = await fetch(`https://hacker-news.firebaseio.com/v0/${feedType}.json`);
                 const ids = await res.json();
                 const topIds = ids.slice(0, STORIES_TO_LOAD);
                 
@@ -258,7 +292,16 @@
             }
         }
 
-        // Initialize
+        // Listen for changes on the radio buttons
+        feedToggles.forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    loadStories(e.target.value);
+                }
+            });
+        });
+
+        // Initialize with default selection
         loadStories();
     </script>
 </body>
