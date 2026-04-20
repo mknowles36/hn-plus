@@ -32,33 +32,59 @@
 
         .story {
             display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 10pt;
+            align-items: flex-start; /* Align checkbox to the top line */
+            margin-bottom: 15px;
         }
 
         .story input[type="checkbox"] {
             margin-right: 12px;
+            margin-top: 2px; /* Fine-tune vertical alignment with text */
             cursor: pointer;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
         }
 
-        /* 1. Base unvisited link color */
-        .story a {
+        .story-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .story-title {
+            font-size: 10pt;
+        }
+
+        /* 1. Base unvisited title link color */
+        .story-title a {
             color: #000000; 
             text-decoration: none;
         }
 
-        /* 2. Checked AND unvisited link color */
-        .story.processed a {
+        /* 2. Checked AND unvisited title link color */
+        .story.processed .story-title a {
             color: #b3b3b3; /* Light silver/grey */
         }
 
-        /* 3. Visited link color (Forces purple for BOTH normal and processed states) */
-        .story a:visited,
-        .story.processed a:visited {
+        /* 3. Visited title link color (Forces purple for BOTH normal and processed states) */
+        .story-title a:visited,
+        .story.processed .story-title a:visited {
             color: #551A8B; /* Standard visited purple */
+        }
+
+        /* Subtext styling */
+        .subtext {
+            font-size: 8pt;
+            color: #828282;
+            margin-top: 4px;
+        }
+
+        .subtext a {
+            color: #828282;
+            text-decoration: none;
+        }
+
+        .subtext a:hover {
+            text-decoration: underline;
         }
 
         .loading {
@@ -82,6 +108,31 @@
         const PROCESSED_KEY = 'hn_processed_items';
         const STORIES_TO_LOAD = 30; 
         
+        // Helper function to convert Unix timestamp to relative time (e.g., "3 hours ago")
+        function timeSince(unixTimestamp) {
+            const seconds = Math.floor(Date.now() / 1000) - unixTimestamp;
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) {
+                const d = Math.floor(interval);
+                return d + (d === 1 ? " day ago" : " days ago");
+            }
+            interval = seconds / 3600;
+            if (interval > 1) {
+                const h = Math.floor(interval);
+                return h + (h === 1 ? " hour ago" : " hours ago");
+            }
+            interval = seconds / 60;
+            if (interval > 1) {
+                const m = Math.floor(interval);
+                return m + (m === 1 ? " minute ago" : " minutes ago");
+            }
+            return Math.floor(seconds) + " seconds ago";
+        }
+
         // Retrieve checked states from the browser's Local Storage
         function getProcessedStates() {
             try {
@@ -119,14 +170,14 @@
                     
                     if (!item) continue;
 
-                    // Create the row container
+                    // 1. Create the row container
                     const div = document.createElement('div');
                     div.className = 'story';
                     if (processed[id]) {
                         div.classList.add('processed');
                     }
 
-                    // Create the checkbox
+                    // 2. Create the checkbox
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.checked = !!processed[id];
@@ -144,15 +195,44 @@
                         }
                     });
 
-                    // Create the headline link
-                    const link = document.createElement('a');
-                    link.href = item.url || `https://news.ycombinator.com/item?id=${id}`;
-                    link.target = '_blank'; // Opens in new tab
-                    link.textContent = item.title;
+                    // 3. Create the info container (Title + Subtext)
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'story-info';
+
+                    // 4. Create the Title line
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'story-title';
+                    const titleLink = document.createElement('a');
+                    const hnItemUrl = `https://news.ycombinator.com/item?id=${id}`;
+                    titleLink.href = item.url || hnItemUrl;
+                    titleLink.target = '_blank'; 
+                    titleLink.textContent = item.title;
+                    titleDiv.appendChild(titleLink);
+
+                    // 5. Create the Subtext line
+                    const subtextDiv = document.createElement('div');
+                    subtextDiv.className = 'subtext';
+                    
+                    // Handle edge cases (e.g., job postings sometimes lack scores or authors)
+                    const score = item.score || 0;
+                    const by = item.by || 'unknown';
+                    const comments = item.descendants || 0;
+                    const userUrl = `https://news.ycombinator.com/user?id=${by}`;
+                    const timeAgo = timeSince(item.time);
+
+                    subtextDiv.innerHTML = `
+                        ${score} points by <a href="${userUrl}" target="_blank">${by}</a> 
+                        <a href="${hnItemUrl}" target="_blank">${timeAgo}</a> | 
+                        <a href="${hnItemUrl}" target="_blank">${comments} comments</a>
+                    `;
 
                     // Assemble the elements
+                    infoDiv.appendChild(titleDiv);
+                    infoDiv.appendChild(subtextDiv);
+                    
                     div.appendChild(checkbox);
-                    div.appendChild(link);
+                    div.appendChild(infoDiv);
+                    
                     storiesContainer.appendChild(div);
                 }
             } catch (e) {

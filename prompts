@@ -1,3 +1,6 @@
 1: could you create a web app that serves as a front end to hacker news (news.ycombinator.com) that adds checkmarks beside each article and allows the user to check the checkmark to indicate that they have processed that headline (but not necessarily the article).  Checked items should be rendered using a lighter coloured text colour, but also in a colour that is distinct from the colour that the browser uses to render the link text for pages that have been previously loaded.
 -------
 2: Could you modify it so that the styling of rows with a checked box only applies the light silver ".processed" colour to the article link if that link has not been previously visited?  For links that have been previously it should be rendered using the browser's standard "visited" colour regardless of whether that link's checkbox was checked or not.
+-------
+3: Could you add a sub-header line for each entry, below the title line, that lists: the number of points for the post, the author, how long ago it was posted, and the number of comments.  Could each of those item sin the sub-header line have associated links, and could it be formatted in the same way as on the real Hacker News page (similar to: "326 points by omer_k 1 day ago | 426 comments")?
+
