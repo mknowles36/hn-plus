@@ -32,17 +32,28 @@
 
         .story {
             display: flex;
-            align-items: flex-start; /* Align checkbox to the top line */
+            align-items: flex-start; /* Align elements to the top line */
             margin-bottom: 15px;
         }
 
         .story input[type="checkbox"] {
             margin-right: 12px;
-            margin-top: 2px; /* Fine-tune vertical alignment with text */
+            margin-top: 1px; /* Fine-tune vertical alignment with text */
             cursor: pointer;
             width: 14px;
             height: 14px;
             flex-shrink: 0;
+        }
+
+        /* Ordinal numbering styling */
+        .ordinal {
+            color: #828282;
+            font-size: 10pt;
+            min-width: 25px; /* Ensures double-digit numbers align cleanly */
+            text-align: right;
+            margin-right: 8px;
+            flex-shrink: 0;
+            margin-top: 1px;
         }
 
         .story-info {
@@ -164,7 +175,8 @@
                 const processed = getProcessedStates();
 
                 // Fetch data for each story
-                for (let id of topIds) {
+                for (let i = 0; i < topIds.length; i++) {
+                    const id = topIds[i];
                     const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
                     const item = await itemRes.json();
                     
@@ -195,11 +207,16 @@
                         }
                     });
 
-                    // 3. Create the info container (Title + Subtext)
+                    // 3. Create the ordinal number
+                    const ordinalDiv = document.createElement('div');
+                    ordinalDiv.className = 'ordinal';
+                    ordinalDiv.textContent = `${i + 1}.`;
+
+                    // 4. Create the info container (Title + Subtext)
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'story-info';
 
-                    // 4. Create the Title line
+                    // 5. Create the Title line
                     const titleDiv = document.createElement('div');
                     titleDiv.className = 'story-title';
                     const titleLink = document.createElement('a');
@@ -209,11 +226,10 @@
                     titleLink.textContent = item.title;
                     titleDiv.appendChild(titleLink);
 
-                    // 5. Create the Subtext line
+                    // 6. Create the Subtext line
                     const subtextDiv = document.createElement('div');
                     subtextDiv.className = 'subtext';
                     
-                    // Handle edge cases (e.g., job postings sometimes lack scores or authors)
                     const score = item.score || 0;
                     const by = item.by || 'unknown';
                     const comments = item.descendants || 0;
@@ -231,6 +247,7 @@
                     infoDiv.appendChild(subtextDiv);
                     
                     div.appendChild(checkbox);
+                    div.appendChild(ordinalDiv);
                     div.appendChild(infoDiv);
                     
                     storiesContainer.appendChild(div);
