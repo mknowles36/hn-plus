@@ -44,26 +44,21 @@
             height: 16px;
         }
 
-        /* Default link colors */
+        /* 1. Base unvisited link color */
         .story a {
-            color: #000000; /* Unvisited link color */
+            color: #000000; 
             text-decoration: none;
         }
 
-        /* Standard browser visited link color (Purple) */
-        .story a:visited {
-            color: #551A8B; 
+        /* 2. Checked AND unvisited link color */
+        .story.processed a {
+            color: #b3b3b3; /* Light silver/grey */
         }
 
-        /* 
-           Processed styling: 
-           Lighter color, explicitly distinct from the purple visited state. 
-           Using !important to override the standard and visited link states 
-           once the item is checked.
-        */
-        .story.processed a,
+        /* 3. Visited link color (Forces purple for BOTH normal and processed states) */
+        .story a:visited,
         .story.processed a:visited {
-            color: #b3b3b3 !important; /* Light silver/grey */
+            color: #551A8B; /* Standard visited purple */
         }
 
         .loading {
@@ -85,7 +80,7 @@
     <script>
         const storiesContainer = document.getElementById('stories');
         const PROCESSED_KEY = 'hn_processed_items';
-        const STORIES_TO_LOAD = 30; // Number of headlines to fetch
+        const STORIES_TO_LOAD = 30; 
         
         // Retrieve checked states from the browser's Local Storage
         function getProcessedStates() {
