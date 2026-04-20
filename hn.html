@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HN Processed Reader</title>
+    <style>
+        /* Base Hacker News styling */
+        body {
+            font-family: Verdana, Geneva, sans-serif;
+            background-color: #f6f6ef; /* Standard HN background */
+            color: #000000;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #ff6600; /* HN Orange */
+            padding: 10px;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .container {
+            padding: 15px;
+        }
+
+        .story {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 10pt;
+        }
+
+        .story input[type="checkbox"] {
+            margin-right: 12px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Default link colors */
+        .story a {
+            color: #000000; /* Unvisited link color */
+            text-decoration: none;
+        }
+
+        /* Standard browser visited link color (Purple) */
+        .story a:visited {
+            color: #551A8B; 
+        }
+
+        /* 
+           Processed styling: 
+           Lighter color, explicitly distinct from the purple visited state. 
+           Using !important to override the standard and visited link states 
+           once the item is checked.
+        */
+        .story.processed a,
+        .story.processed a:visited {
+            color: #b3b3b3 !important; /* Light silver/grey */
+        }
+
+        .loading {
+            font-size: 10pt;
+            color: #828282;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="#">Hacker News Check</a>
+    </div>
+
+    <div id="stories" class="container">
+        <div class="loading">Fetching front page stories...</div>
+    </div>
+
+    <script>
+        const storiesContainer = document.getElementById('stories');
+        const PROCESSED_KEY = 'hn_processed_items';
+        const STORIES_TO_LOAD = 30; // Number of headlines to fetch
+        
+        // Retrieve checked states from the browser's Local Storage
+        function getProcessedStates() {
+            try {
+                return JSON.parse(localStorage.getItem(PROCESSED_KEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Save a checked state to Local Storage
+        function setProcessedState(id, isProcessed) {
+            const processed = getProcessedStates();
+            if (isProcessed) {
+                processed[id] = true;
+            } else {
+                delete processed[id];
+            }
+            localStorage.setItem(PROCESSED_KEY, JSON.stringify(processed));
+        }
+
+        async function loadStories() {
+            try {
+                // Fetch the IDs of the current top stories
+                const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+                const ids = await res.json();
+                const topIds = ids.slice(0, STORIES_TO_LOAD);
+                
+                storiesContainer.innerHTML = ''; // Clear loading text
+                const processed = getProcessedStates();
+
+                // Fetch data for each story
+                for (let id of topIds) {
+                    const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+                    const item = await itemRes.json();
+                    
+                    if (!item) continue;
+
+                    // Create the row container
+                    const div = document.createElement('div');
+                    div.className = 'story';
+                    if (processed[id]) {
+                        div.classList.add('processed');
+                    }
+
+                    // Create the checkbox
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = !!processed[id];
+                    checkbox.title = "Mark as processed";
+                    
+                    // Toggle the visual class and save state when clicked
+                    checkbox.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        setProcessedState(id, isChecked);
+                        
+                        if (isChecked) {
+                            div.classList.add('processed');
+                        } else {
+                            div.classList.remove('processed');
+                        }
+                    });
+
+                    // Create the headline link
+                    const link = document.createElement('a');
+                    link.href = item.url || `https://news.ycombinator.com/item?id=${id}`;
+                    link.target = '_blank'; // Opens in new tab
+                    link.textContent = item.title;
+
+                    // Assemble the elements
+                    div.appendChild(checkbox);
+                    div.appendChild(link);
+                    storiesContainer.appendChild(div);
+                }
+            } catch (e) {
+                storiesContainer.innerHTML = '<div class="loading">Error loading stories from Hacker News API. Please try refreshing.</div>';
+                console.error(e);
+            }
+        }
+
+        // Initialize
+        loadStories();
+    </script>
+</body>
+</html>
