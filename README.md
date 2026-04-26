@@ -1,8 +1,8 @@
 Alternate front-end to Hacker News that allows the user to quickly mark
-article titles as having been "processed" (by the user) without needing the user
-to actually have to click on the link and load the article.  This allows the user
-to quickly identify new (to the user) articles on each page reload, and can greatly
-reduce scanning time.
+article *titles* as having been "processed" (by the user) without needing the user
+to actually have to click on the link and load the associated article.  This allows
+the user to quickly identify new (to the user) articles on each page reload, and
+can greatly reduce scanning time.
 
 The page remembers the articles that the user had previously marked as "processed"
 in localStorage, so it will remember these across page reloads.  The page also cleans
