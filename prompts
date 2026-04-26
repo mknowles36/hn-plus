@@ -10,3 +10,5 @@
 -------
 6: Whenever the user clicks an item, could you store the timestamp that the item was clicked.  And then whenever the page loads, could you clear out any items from localStorage that are older than 72 hours before the time the page loads?
 -------
+7: Could you add a <link> tag in the head section that refers to a favicon with the filename 'favicon.ico'?
+-------
