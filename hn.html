@@ -149,8 +149,9 @@
         const feedToggles = document.querySelectorAll('input[name="feedToggle"]');
         const PROCESSED_KEY = 'hn_processed_items';
         const STORIES_TO_LOAD = 30; 
+        const EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
         
-        // Helper function to convert Unix timestamp to relative time (e.g., "3 hours ago")
+        // Helper function to convert Unix timestamp to relative time
         function timeSince(unixTimestamp) {
             const seconds = Math.floor(Date.now() / 1000) - unixTimestamp;
             let interval = seconds / 31536000;
@@ -175,7 +176,7 @@
             return Math.floor(seconds) + " seconds ago";
         }
 
-        // Retrieve checked states from the browser's Local Storage
+        // Retrieve raw processed states from Local Storage
         function getProcessedStates() {
             try {
                 return JSON.parse(localStorage.getItem(PROCESSED_KEY) || '{}');
@@ -184,31 +185,55 @@
             }
         }
 
-        // Save a checked state to Local Storage
+        // Save a checked state with the current timestamp
         function setProcessedState(id, isProcessed) {
             const processed = getProcessedStates();
             if (isProcessed) {
-                processed[id] = true;
+                processed[id] = Date.now(); // Save exact click time
             } else {
                 delete processed[id];
             }
             localStorage.setItem(PROCESSED_KEY, JSON.stringify(processed));
         }
 
+        // Scans localStorage and removes entries older than 72 hours
+        function cleanupProcessedStates() {
+            const processed = getProcessedStates();
+            const now = Date.now();
+            let changed = false;
+
+            for (const id in processed) {
+                const timestamp = processed[id];
+
+                // Migration: If the value is the old boolean 'true', update it to 'now'
+                if (timestamp === true) {
+                    processed[id] = now;
+                    changed = true;
+                } 
+                // Purge: If the difference between now and the timestamp is > 72 hours
+                else if (typeof timestamp === 'number' && (now - timestamp > EXPIRATION_MS)) {
+                    delete processed[id];
+                    changed = true;
+                }
+            }
+
+            // Only write back to disk if we actually changed/deleted something
+            if (changed) {
+                localStorage.setItem(PROCESSED_KEY, JSON.stringify(processed));
+            }
+        }
+
         async function loadStories(feedType = 'topstories') {
             try {
-                // Show loading text when switching feeds
                 storiesContainer.innerHTML = `<div class="loading">Fetching ${feedType === 'topstories' ? 'front page' : 'most active'} stories...</div>`;
                 
-                // Fetch the IDs of the requested feed type
                 const res = await fetch(`https://hacker-news.firebaseio.com/v0/${feedType}.json`);
                 const ids = await res.json();
                 const topIds = ids.slice(0, STORIES_TO_LOAD);
                 
-                storiesContainer.innerHTML = ''; // Clear loading text
-                const processed = getProcessedStates();
+                storiesContainer.innerHTML = ''; 
+                const processed = getProcessedStates(); // Fetch cleaned states
 
-                // Fetch data for each story
                 for (let i = 0; i < topIds.length; i++) {
                     const id = topIds[i];
                     const itemRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
@@ -216,20 +241,19 @@
                     
                     if (!item) continue;
 
-                    // 1. Create the row container
+                    // 1. Row container
                     const div = document.createElement('div');
                     div.className = 'story';
                     if (processed[id]) {
                         div.classList.add('processed');
                     }
 
-                    // 2. Create the checkbox
+                    // 2. Checkbox
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
-                    checkbox.checked = !!processed[id];
+                    checkbox.checked = !!processed[id]; // !! converts the timestamp or undefined into true/false
                     checkbox.title = "Mark as processed";
                     
-                    // Toggle the visual class and save state when clicked
                     checkbox.addEventListener('change', (e) => {
                         const isChecked = e.target.checked;
                         setProcessedState(id, isChecked);
@@ -241,16 +265,16 @@
                         }
                     });
 
-                    // 3. Create the ordinal number
+                    // 3. Ordinal number
                     const ordinalDiv = document.createElement('div');
                     ordinalDiv.className = 'ordinal';
                     ordinalDiv.textContent = `${i + 1}.`;
 
-                    // 4. Create the info container (Title + Subtext)
+                    // 4. Info container
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'story-info';
 
-                    // 5. Create the Title line
+                    // 5. Title line
                     const titleDiv = document.createElement('div');
                     titleDiv.className = 'story-title';
                     const titleLink = document.createElement('a');
@@ -260,7 +284,7 @@
                     titleLink.textContent = item.title;
                     titleDiv.appendChild(titleLink);
 
-                    // 6. Create the Subtext line
+                    // 6. Subtext line
                     const subtextDiv = document.createElement('div');
                     subtextDiv.className = 'subtext';
                     
@@ -276,10 +300,9 @@
                         <a href="${hnItemUrl}" target="_blank">${comments} comments</a>
                     `;
 
-                    // Assemble the elements
+                    // Assemble
                     infoDiv.appendChild(titleDiv);
                     infoDiv.appendChild(subtextDiv);
-                    
                     div.appendChild(checkbox);
                     div.appendChild(ordinalDiv);
                     div.appendChild(infoDiv);
@@ -301,8 +324,9 @@
             });
         });
 
-        // Initialize with default selection
-        loadStories();
+        // Initialize App
+        cleanupProcessedStates(); // Scour localStorage for expired items FIRST
+        loadStories(); // Then load the UI
     </script>
 </body>
 </html>

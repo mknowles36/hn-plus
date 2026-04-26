@@ -8,3 +8,5 @@
 -------
 5: Could you add a toggle at the top of the page that allows the user to select either the default top stories list or the list of most active posts on Hacker News?
 -------
+6: Whenever the user clicks an item, could you store the timestamp that the item was clicked.  And then whenever the page loads, could you clear out any items from localStorage that are older than 72 hours before the time the page loads?
+-------
